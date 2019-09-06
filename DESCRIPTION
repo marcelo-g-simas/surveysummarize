@@ -1,0 +1,18 @@
+Package: hatstats
+Title: HTS Analytics Toolkit - Statistics
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Alex", "Cates", email = "AlexanderCates@westat.com",role = c("aut", "cre")),
+    person("Anthony", "Fucci", email = "AnthonyFucci@westat.com",role = c("aut")),
+    person("Marcelo", "Simas", email = "MarceloSimas@westat.com",role = c("aut"))
+    )
+Description: High level functions for computing weighted household travel survey statistics with errors, including daily household and person trip rates.
+Depends: R (>= 3.2.0)
+License: GPL-3
+Imports:
+    Rcpp (>= 0.11.0),
+    data.table,
+    magrittr
+LinkingTo: Rcpp
+LazyData: true
+RoxygenNote: 6.1.1

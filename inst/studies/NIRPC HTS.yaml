@@ -1,0 +1,49 @@
+#========================================================================================================#
+study_name: 'NIRPC HTS'
+#========================================================================================================#
+data_directory: 'C:/Users/cates_a/Desktop/2018-19 My Daily Travel Survey, Data and Documentation/data'
+#========================================================================================================#
+documentation:
+  variables: 'variable_labels.csv'
+  values: 'value_labels.csv'
+#========================================================================================================#
+levels:
+  household:
+    key: 'sampno'
+    weights:
+      final: 'wthhfin'
+      replicates: !expr paste0('wthhfin', 1:80)
+    csv:
+      data: 'household.csv'
+      weights: 'household_weights.csv'
+#========================================================================================================#
+  person:
+    key:
+      - 'sampno'
+      - 'perno'
+    weights:
+      final: 'wtperfin'
+      replicates: !expr paste0('wtperfin', 1:80)
+    csv:
+      data: 'person.csv'
+      weights: 'person_weights.csv'
+#========================================================================================================#
+  trip:
+    key:
+      - 'sampno'
+      - 'perno'
+      - 'tripno'
+    csv:
+      data: 'trip.csv'
+#========================================================================================================#
+  vehicle:
+    key:
+      - 'sampno'
+      - 'vehno'
+    csv:
+      data: 'vehicle.csv'
+#========================================================================================================#
+constants:
+    jk_coeff: 0.975
+    annualized_days: 365
+

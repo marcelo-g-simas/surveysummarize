@@ -1,0 +1,42 @@
+#==============================================================================================#
+study_name: 'NHTS - 2017'
+#==============================================================================================#
+data_directory: 'C:/Users/cates_a/Desktop/NHTS Summarizer Test/csv/2017'
+#==============================================================================================#
+levels:
+  household:
+    key: 'HOUSEID'
+    weights:
+      final: 'WTHHFIN'
+      replicates: !expr paste0('WTHHFIN', 1:98)
+    csv:
+      data: 'household.csv'
+      weights: 'household_weights.csv'
+#==============================================================================================#
+  person:
+    key:
+      - 'HOUSEID'
+      - 'PERSONID'
+    weights:
+      final: 'WTPERFIN'
+      replicates: !expr paste0('WTPERFIN', 1:98)
+    csv:
+      data: 'person.csv'
+      weights: 'person_weights.csv'
+#==============================================================================================#
+  trip:
+    key:
+      - 'HOUSEID'
+      - 'PERSONID'
+      - 'TDTRPNUM'
+    csv:
+      data: 'trip.csv'
+#==============================================================================================#
+  vehicle:
+    key:
+      - 'HOUSEID'
+      - 'VEHID'
+    csv:
+      data: 'vehicle.csv'
+#==============================================================================================#
+

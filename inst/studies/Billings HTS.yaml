@@ -1,0 +1,47 @@
+#==============================================================================================#
+study_name: 'Billings HTS'
+#==============================================================================================#
+data_directory: 'C:/Users/cates_a/Desktop/Source/hts-deliverables(billings)/HAT/csv/'
+#==============================================================================================#
+documentation:
+  variables: 'variables.csv'
+  values: 'values.csv'
+#==============================================================================================#
+levels:
+  household:
+    key: 'SAMPNO'
+    weights:
+      final: 'HHWGT'
+      replicates: !expr paste0('HHWGT', 2:100)
+    csv:
+      data: 'household.csv'
+      weights: 'household_weights.csv'
+#==============================================================================================#
+  person:
+    key:
+      - 'SAMPNO'
+      - 'PERNO'
+    weights:
+      final: 'PERWGT'
+      replicates: !expr paste0('PERWGT', 2:100)
+    csv:
+      data: 'person.csv'
+      weights: 'person_weights.csv'
+#==============================================================================================#
+  trip:
+    key:
+      - 'SAMPNO'
+      - 'PERNO'
+      - 'TRIPNO'
+    csv:
+      data: 'trip.csv'
+#==============================================================================================#
+  vehicle:
+    key:
+      - 'SAMPNO'
+      - 'VEHNO'
+    csv:
+      data: 'vehicle.csv'
+#==============================================================================================#
+
+
