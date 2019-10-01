@@ -1,8 +1,7 @@
-#' @title Read HTS data and weights.
+#' @title Read HTS data, weights, metadata, etc.
 #'
-#' @param dataset The study year of the dataset. Currently supports "2001" and "2009".
-#' @param select A character vector of NHTS variable names to select for analysis. Defaults to all variables in the codebook.
-#' @param csv_path The parent directory of "/csv/dataset/". Defaults to working directory.
+#' @param study character. A valid study name.
+#' @param project_path character. The project directory.
 #'
 #' @details
 #' \code{read_data} is a wrapper for reading in variables from the correct csvs
@@ -10,7 +9,7 @@
 #' \link[data.table]{merge} are used for performance benefits.
 #'
 #' @return read_data returns an object of class "HTS.data". It contains the data files and weights necessary for
-#' querying the NHTS dataset, used primarily by \link[summarizeNHTS]{summarize_data}.
+#' querying the HTS datasets, used primarily by \link[surveysummarize]{summarize_data}.
 #'
 #' The "HTS.data" object is essentially a list of data.tables broken up by data and weights.
 #'
@@ -30,81 +29,63 @@
 #'
 #' @examples
 #' \donttest{
-#' # Read 2009 NHTS data with specified csv path:
-#' nhts_data <- read_data('2009', csv_path = 'C:/NHTS')
+#' # Read the data
+#' hts_data <- read_data(
+#'   study = 'nirpc_2018',
+#'   project_path = 'C:/2018 NIRPC Household Travel Survey'
+#' )
 #'
 #' # Access the data
-#' nhts_data$data$household     # household data
-#' nhts_data$data$person        # person data
-#' nhts_data$data$trip          # trip data
-#' nhts_data$data$vehicle       # vehicle data
+#' hts_data$data$household     # household data
+#' hts_data$data$person        # person data
+#' hts_data$data$trip          # trip data
+#' hts_data$data$vehicle       # vehicle data
 #'
 #' # Access the weights
-#' nhts_data$weights$household  # household weights
-#' nhts_data$weights$person     # person and trip weights
+#' hts_data$weights$household  # household weights
+#' hts_data$weights$person     # person and trip weights
 #' }
 #'
 #' @export
 #' @import data.table
-#' @importFrom tools file_path_sans_ext
+#' @import logging
 #' @importFrom yaml read_yaml
 #'
-read_data <- function(config) {
+read_data <- function(study, project_path) {
 
-  if (missing(config) & interactive()) {
+  # study name should match name of yaml configuration
+  study_paths <- list.files(system.file('studies', package = 'surveysummarize'), full.names = T)
+  study_names <- sub("([^.]+)\\.[[:alnum:]]+$", "\\1", basename(study_paths))
+  config_path <- study_paths[study == study_names]
 
-    # Get study configurations from package install location
-    study_directory <- system.file('studies', package = 'hatstats')
-    study_files <- file_path_sans_ext(list.files(study_directory))
+  if (length(config_path) > 0) {
 
-    # Choose from a list of studies
-    hts_choice <- select.list(
-      choices = c('--New Household Travel Survey--', study_files),
-      preselect = '--New Household Travel Survey--',
-      title = 'Select a Household Travel Survey:',
-      graphics = TRUE
-    )
+    tryCatch({
+      loginfo(paste('Reading YAML configuration file:', config_path))
+      config <- read_yaml(config_path, eval.expr = TRUE)
+    }, error = function(cond) {
+      loginfo(sprintf('Failed to parse YAML configuration file %s. %s', config_path, cond))
+      stop(sprintf('Failed to parse YAML configuration file %s. %s', config_path, cond))
+    })
 
-    # Load study configuration. If new, opens default text editor for configuration edits.
-    if (hts_choice == '--New Household Travel Survey--') {
-      tmp <- tempfile(pattern = 'new_hts_config', fileext = '.yaml')
-      config_file_path <- file.path(study_directory, '.config.yaml')
-      file.copy(config_file_path, tmp)
-      try(edit(file = tmp), silent = T)
-      config <- read_yaml(tmp, eval.expr = TRUE)
-      save_config <- askYesNo(paste0('Save new configuration?\n', dQuote(config$study_name)))
-
-      if (save_config == TRUE) {
-        study_file_path <- file.path(study_directory, paste0(config$study_name, '.yaml'))
-        file.copy(tmp, study_file_path)
-        config <- read_yaml(study_file_path, eval.expr = TRUE)
-      }
-
-      unlink(tmp)
-
-    } else if (hts_choice == '') {
-      warning('No Household Travel Survey selected.')
-      return(NULL)
-    } else {
-      study_file_path <- file.path(study_directory, paste0(hts_choice, '.yaml'))
-      config <- read_yaml(study_file_path, eval.expr = TRUE)
-    }
-
-  } else if (missing(config) & !interactive()) {
-    stop('The config parameter must be specified in non-interactive environments.')
+  } else {
+    logerror(paste('Cannot find configuration for specified study:', study))
+    stop('Cannot find configuration for specified study: ', study)
   }
 
-  if (is.character(config) && grepl('.yaml', config)) {
-    config <- read_yaml(config, eval.expr = TRUE)
+  if (dir.exists(project_path)) {
+    # Initalize HTS data object
+    hts_obj <- HTS.data$new(config, project_path)
+    hts_obj$read_all()
+    hts_obj$append_location_data()
+  } else {
+    logerror(paste('Cannot find specified project path:', project_path))
+    stop('Cannot find specified project path:\n', project_path)
   }
-
-  # Initalize HTS data object
-  hts_obj <- HTS.data$new(config)
-  hts_obj$read_all()
 
   # minimal derived variable support requires this chunk and derived_variables.R
-  derived_variable_config <- file.path(hts_obj$config$data_directory, 'derived_variable_config.csv')
-  if (file.exists(derived_variable_config)) {
+  derived_variable_config <- normalizePath(config$metadata$derived_variables$csv, mustWork = FALSE)
+  if (length(derived_variable_config) > 0 && file.exists(derived_variable_config)) {
     derived_variables(hts_obj, derived_variable_config)
   }
 
@@ -119,13 +100,15 @@ read_data <- function(config) {
 #' @importFrom R6 R6Class
 HTS.data <- R6Class("HTS.data",
   public = list(
-    initialize = function(config) {
+    initialize = function(config, project_path) {
       self$config <- config
+      self$project_path <- project_path
     },
     print = function(...) {
       cat("<HTS.data> Environment")
     },
     config = NULL,
+    project_path = NULL,
     data = list(
       trip = NULL,
       tour = NULL,
@@ -142,106 +125,146 @@ HTS.data <- R6Class("HTS.data",
       variables = NULL
     ),
     read_all = function() {
-      self$path_check()
       self$read_documentation()
       for (table_level in names(self$config$levels)) {
-        message('=========================================================================')
-        message(sprintf('Reading %s data...',table_level))
-        self$read_data(table_level)
-        if (table_level %in% c('household','person')) {
+
+        tryCatch({
           message('=========================================================================')
-          message(sprintf('Reading %s weights...',table_level))
-          self$read_weights(table_level)
+          message(sprintf('Reading %s data...', table_level))
+          self$read_data(table_level)
+          loginfo(sprintf('Read %s table successfully', table_level))
+        }, error = function(cond) {
+          logerror(sprintf('Failed to read %s table. ERROR: %s', table_level, cond))
+          stop(sprintf('Failed to read %s table. ERROR: %s', table_level, cond))
+        })
+
+        if (table_level %in% c('household','person')) {
+
+          tryCatch({
+            message('=========================================================================')
+            message(sprintf('Reading %s weights...', table_level))
+            self$read_weights(table_level)
+            loginfo(sprintf('Read %s weights successfully', table_level))
+          }, error = function(cond) {
+            logerror(sprintf('Failed to read %s weights. ERROR: %s', table_level, cond))
+            stop(sprintf('Failed to read %s weights. ERROR: %s', table_level, cond))
+          })
+
         }
       }
       message('=========================================================================')
     },
-    path_check = function() {
-      if(length(list.files(self$config$data_directory, '.csv', ignore.case = T)) == 0) {
-        stop(
-          "\nThe directory below does not exist or does not contain csv files.\n", self$config$data_directory,
-          "\n- Make sure the correct path is specified."
-        )
-      }
-    },
     #========================================================================================================#
     read_data = function(table_level) {
-      config <- self$config$levels
-      config <- config[[table_level]]
-      self$data[[table_level]] <- fread(
-        input = file.path(self$config$data_directory, config$csv$data),
-        key = config$key,
-        colClasses = 'character'
-      )
-      setattr(self$data[[table_level]], 'weight', config$weight)
+      if (table_level == 'place') {
+        self$data[['trip']] <- self$place_to_trip()
+      } else {
+        level_config <- self$config$levels[[table_level]]
+        input_csv <- normalizePath(file.path(self$project_path, level_config$data$csv))
+        self$data[[table_level]] <- fread(
+          input = input_csv,
+          key = level_config$id,
+          colClasses = 'character'
+        )
+      }
+      # setattr(self$data[[table_level]], 'weight', level_config$weight)
     },
     #========================================================================================================#
     read_weights = function(table_level) {
-      config <- self$config$levels[[table_level]]
-      if (is.null(config$csv$weights) | is.null(config$weights)) return()
-      col_select <- c(config$key, config$weights$final, config$weights$replicates)
+
+      level_config <- self$config$levels[[table_level]]
+
+      if (is.null(level_config$weights)) return()
+
+      col_select <- c(level_config$id, level_config$weights$final, level_config$weights$replicates)
+
       col_classes <- c(
-        rep('character',length(config$key)),
-        rep('numeric', length(c(config$weights$final, config$weights$replicates)))
+        rep('character',length(level_config$id)),
+        rep('numeric', length(c(level_config$weights$final, level_config$weights$replicates)))
       )
+
       names(col_classes) <- col_select
+      input_csv <- normalizePath(file.path(self$project_path, level_config$weights$csv))
+
       self$weights[[table_level]] <- fread(
-        input = file.path(self$config$data_directory, config$csv$weights),
+        input = input_csv,
         select = col_select,
         colClasses = col_classes,
-        key = config$key
+        key = level_config$id
       )
-      setattr(self$weights[[table_level]], 'final', config$weights$final)
-      setattr(self$weights[[table_level]], 'replicates', config$weights$replicates)
+
     },
     #========================================================================================================#
     read_documentation = function() {
 
-      config <- self$config$documentation
-      variables_path <- file.path(self$config$data_directory, config$variables)
-      values_path <- file.path(self$config$data_directory, config$values)
+      variables_path <- normalizePath(file.path(self$project_path, self$config$metadata$variables$csv), mustWork = F)
+      values_path <- normalizePath(file.path(self$project_path, self$config$metadata$values$csv), mustWork = F)
 
-      if (!is.null(config$variables) && file.exists(variables_path)) {
-        self$documentation$variables <- fread(variables_path, encoding = 'UTF-8')
+      if (length(variables_path) == 0) {
+        logwarn('No variable labels specified.')
+        warning('No variable labels specified.')
+      } else if (!file.exists(variables_path)) {
+        logwarn(sprintf('Could not find variable labels csv %s', variables_path))
+        warning(sprintf('Could not find variable labels csv %s', variables_path))
+      } else {
+        tryCatch({
+          loginfo(sprintf('Reading variable labels %s.', variables_path))
+          self$documentation$variables <- fread(variables_path, encoding = 'UTF-8')
+        }, error = function(cond) {
+          logerror(sprintf('Failed to read variable labels %s. %s', variables_path, cond))
+          stop(sprintf('Failed to read variable labels %s. %s', variables_path, cond))
+        })
       }
 
-      if (!is.null(config$values) && file.exists(values_path)) {
-        self$documentation$values <- fread(values_path, encoding = 'UTF-8')
+      if (length(values_path) == 0) {
+        logwarn('No value labels specified.')
+        warning('No value labels specified.')
+      } else if (!file.exists(values_path)) {
+        logwarn(sprintf('Could not find value labels csv %s', values_path))
+        warning(sprintf('Could not find value labels csv %s', values_path))
+      } else {
+        tryCatch({
+          loginfo(sprintf('Reading value labels %s.', values_path))
+          self$documentation$values <- fread(values_path, encoding = 'UTF-8')
+        }, error = function(cond) {
+          logerror(sprintf('Failed to read value labels %s. %s', values_path, cond))
+          stop(sprintf('Failed to read value labels %s. %s', values_path, cond))
+        })
       }
 
     },
     #========================================================================================================#
-    prepare = function(level, select = NULL, subset = NULL, annualize = TRUE) {
+    prepare = function(table_level, select = NULL, subset = NULL, annualize = TRUE) {
 
-      if (level == 'household') {
+      if (table_level == 'household') {
 
         tbls = c('household','household_weights')
-        final = attr(self$weights$household, 'final')
-        replicates = attr(self$weights$household, 'replicates')
+        final = self$config$levels$household$weights$final
+        replicates = self$config$levels$household$weights$replicates
 
-      } else if (level == 'vehicle') {
+      } else if (table_level == 'vehicle') {
 
         tbls = c('vehicle','household','household_weights')
-        final = attr(self$weights$household, 'final')
-        replicates = attr(self$weights$household, 'replicates')
+        final = self$config$levels$household$weights$final
+        replicates = self$config$levels$household$weights$replicates
 
-      } else if (level == 'person') {
+      } else if (table_level == 'person') {
 
         tbls = c('person','person_weights','household')
-        final = attr(self$weights$person, 'final')
-        replicates = attr(self$weights$person, 'replicates')
+        final = self$config$levels$person$weights$final
+        replicates = self$config$levels$person$weights$replicates
 
-      } else if (level == 'trip') {
+      } else if (table_level == 'trip') {
 
         tbls = c('trip','person','person_weights','household')
-        final = attr(self$weights$person, 'final')
-        replicates = attr(self$weights$person, 'replicates')
+        final = self$config$levels$person$weights$final
+        replicates = self$config$levels$person$weights$replicates
 
-      } else if (level == 'tour') {
+      } else if (table_level == 'tour') {
 
         tbls = c('tour','person','person_weights','household')
-        final = attr(self$weights$person, 'final')
-        replicates = attr(self$weights$person, 'replicates')
+        final = self$config$levels$person$weights$final
+        replicates = self$config$levels$person$weights$replicates
 
       }
 
@@ -268,7 +291,7 @@ HTS.data <- R6Class("HTS.data",
       annualized_days <- getOption('HTS.annualized_days')
 
       # Annualize weights for trip and tour levels
-      if (annualize == TRUE & level %in% c('trip','tour') & !is.null(final) & !is.null(replicates)) {
+      if (annualize == TRUE & table_level %in% c('trip','tour') & !is.null(final) & !is.null(replicates)) {
         x[, (final) := .SD * annualized_days, .SDcols = final]
         x[, (replicates) := lapply(.SD, function(x) x * annualized_days), .SD = replicates]
       }
@@ -284,8 +307,8 @@ HTS.data <- R6Class("HTS.data",
       names(which(unlist(table_variables)))
     },
     #========================================================================================================#
-    select_data = function(level, select = colnames(x)) {
-      x <- self$data[[level]]
+    select_data = function(table_level, select = colnames(x)) {
+      x <- self$data[[table_level]]
       cols <- colnames(x)
       keys <- key(x)
       final_weight <- attributes(x)$weight$final
@@ -302,6 +325,82 @@ HTS.data <- R6Class("HTS.data",
         }
       })
       unlist(subset_vars, use.names = FALSE)
+    },
+    #========================================================================================================#
+    place_to_trip = function() {
+
+      input_csv <- normalizePath(file.path(self$project_path, self$config$levels$place$data$csv))
+      # Read place file
+      place <- fread(
+        input = input_csv,
+        colClasses = 'character'
+      )
+
+      # Coerce place ids as numeric for sorting
+      for (id in self$config$levels$place$id) {
+        place[, (id) := as.numeric(get(id))]
+      }
+
+      # Set key/order
+      setDT(place, key = self$config$levels$place$id)
+
+      # Copy over variables from place 1
+      variables <- c('tpurp','tpurp2','deptime','locno')
+      for (var in variables) {
+        place[, (paste(var, 'origin', sep = '_')) := shift(get(var)), by = eval(self$config$levels$person$id)]
+      }
+
+      # Set trip ids in config
+      self$config$levels$trip <- list(id = c(self$config$levels$person$id, 'tripno'))
+
+      # collapse places into trips by removing the first place
+      trip <- place[placeno > 1, ]
+      setnames(trip, self$config$levels$place$id, self$config$levels$trip$id)
+      trip$tripno <- as.integer(trip$tripno) - 1
+
+      # Coerce ids back to character
+      for (id in self$config$levels$trip$id) {
+        trip[, (id) := as.character(get(id))]
+      }
+
+      # Set key
+      setkeyv(trip, cols = self$config$levels$trip$id)
+
+      return(trip)
+    },
+    append_location_data = function() {
+
+      # Location variables to append
+      loc_cols <- c('longitude','latitude','city','state','zip','state_fips','county_fips')
+
+      # Household
+      household_location <- self$data$location[loctype == 1, .SD, .SDcols = c(self$config$levels$household$id, loc_cols)]
+      household_loc_cols <- paste('home', loc_cols, sep = '_')
+      self$data$household[household_location, (household_loc_cols) := mget(loc_cols), on = self$config$levels$household$id]
+      self$data$household[, (household_loc_cols) := lapply(.SD, function(x) ifelse(is.na(x), '-1', x)), .SDcols = household_loc_cols]
+
+      # Person Work
+      work_location <- self$data$location[loctype == 2, .SD, .SDcols = c(self$config$levels$person$id, loc_cols)]
+      work_loc_cols <- paste('work', loc_cols, sep = '_')
+      self$data$person[work_location, (work_loc_cols) := mget(loc_cols), on = self$config$levels$person$id]
+      self$data$person[, (work_loc_cols) := lapply(.SD, function(x) ifelse(is.na(x), '-1', x)), .SDcols = work_loc_cols]
+
+      # Person School
+      school_location <- self$data$location[loctype == 3, .SD, .SDcols = c(self$config$levels$person$id, loc_cols)]
+      school_loc_cols <- paste('school', loc_cols, sep = '_')
+      self$data$person[school_location, (school_loc_cols) := mget(loc_cols), on = self$config$levels$person$id]
+      self$data$person[, (school_loc_cols) := lapply(.SD, function(x) ifelse(is.na(x), '-1', x)), .SDcols = school_loc_cols]
+
+      # Trip Origin
+      loc_id <- self$config$levels$location$id[!self$config$levels$location$id %in% self$config$levels$household$id]
+      loc_origin_id <- paste(loc_id, 'origin', sep = '_')
+      self$data$location[, (loc_origin_id) := get(loc_id)]
+      origin_loc_cols <- paste(loc_cols, 'origin', sep = '_')
+      self$data$trip[self$data$location, (origin_loc_cols) := mget(loc_cols), on = c(self$config$levels$household$id, loc_origin_id)]
+      self$data$location[, (loc_origin_id) := NULL]
+      # Trip Destination
+      self$data$trip[self$data$location, (loc_cols) := mget(loc_cols), on = self$config$levels$location$id]
+
     }
   )
 )

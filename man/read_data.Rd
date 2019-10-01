@@ -2,20 +2,18 @@
 % Please edit documentation in R/read_data.R
 \name{read_data}
 \alias{read_data}
-\title{Read HTS data and weights.}
+\title{Read HTS data, weights, metadata, etc.}
 \usage{
-read_data(config)
+read_data(study, project_path)
 }
 \arguments{
-\item{dataset}{The study year of the dataset. Currently supports "2001" and "2009".}
+\item{study}{character. A valid study name.}
 
-\item{select}{A character vector of NHTS variable names to select for analysis. Defaults to all variables in the codebook.}
-
-\item{csv_path}{The parent directory of "/csv/dataset/". Defaults to working directory.}
+\item{project_path}{character. The project directory.}
 }
 \value{
 read_data returns an object of class "HTS.data". It contains the data files and weights necessary for
-querying the NHTS dataset, used primarily by \link[summarizeNHTS]{summarize_data}.
+querying the HTS datasets, used primarily by \link[surveysummarize]{summarize_data}.
 
 The "HTS.data" object is essentially a list of data.tables broken up by data and weights.
 
@@ -34,7 +32,7 @@ Accessing the weights:
 }
 }
 \description{
-Read HTS data and weights.
+Read HTS data, weights, metadata, etc.
 }
 \details{
 \code{read_data} is a wrapper for reading in variables from the correct csvs
@@ -43,18 +41,21 @@ and merging the corresponding tables on correct keys. \link[data.table]{fread} a
 }
 \examples{
 \donttest{
-# Read 2009 NHTS data with specified csv path:
-nhts_data <- read_data('2009', csv_path = 'C:/NHTS')
+# Read the data
+hts_data <- read_data(
+  study = 'nirpc_2018',
+  project_path = 'C:/2018 NIRPC Household Travel Survey'
+)
 
 # Access the data
-nhts_data$data$household     # household data
-nhts_data$data$person        # person data
-nhts_data$data$trip          # trip data
-nhts_data$data$vehicle       # vehicle data
+hts_data$data$household     # household data
+hts_data$data$person        # person data
+hts_data$data$trip          # trip data
+hts_data$data$vehicle       # vehicle data
 
 # Access the weights
-nhts_data$weights$household  # household weights
-nhts_data$weights$person     # person and trip weights
+hts_data$weights$household  # household weights
+hts_data$weights$person     # person and trip weights
 }
 
 }
