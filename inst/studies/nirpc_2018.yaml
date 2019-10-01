@@ -1,0 +1,56 @@
+#========================================================================================================#
+levels:
+  household:
+    id: 'sampno'
+    data:
+      csv: !expr file.path('data','household.csv')
+    weights:
+      csv: !expr file.path('data','household_weights.csv')
+      final: 'wthhfin'
+      replicates: !expr paste0('wthhfin', 1:80)
+#========================================================================================================#
+  person:
+    id:
+      - 'sampno'
+      - 'perno'
+    data:
+      csv: !expr file.path('data','person.csv')
+    weights:
+      csv: !expr file.path('data','person_weights.csv')
+      final: 'wtperfin'
+      replicates: !expr paste0('wtperfin', 1:80)
+#========================================================================================================#
+  place:
+    id:
+      - 'sampno'
+      - 'perno'
+      - 'placeno'
+    data:
+      csv: !expr file.path('data','place.csv')
+#========================================================================================================#
+  vehicle:
+    id:
+      - 'sampno'
+      - 'vehno'
+    data:
+      csv: !expr file.path('data','vehicle.csv')
+#========================================================================================================#
+  location:
+    id:
+      - 'sampno'
+      - 'locno'
+    data:
+      csv: !expr file.path('data','location.csv')
+#========================================================================================================#
+metadata:
+  variables:
+    csv: !expr file.path('documentation','labels','variables.csv')
+  values:
+    csv: !expr file.path('documentation','labels','values.csv')
+  derived_variables:
+    csv: !expr file.path('data','derived_variable_config.csv')
+#========================================================================================================#
+constants:
+  jk_coeff: 0.975
+  annualized_days: 261
+
