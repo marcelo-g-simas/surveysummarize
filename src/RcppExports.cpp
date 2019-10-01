@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // Rcpp_wgtavg
 double Rcpp_wgtavg(NumericVector x, NumericVector wgts);
-RcppExport SEXP _hatstats_Rcpp_wgtavg(SEXP xSEXP, SEXP wgtsSEXP) {
+RcppExport SEXP _surveysummarize_Rcpp_wgtavg(SEXP xSEXP, SEXP wgtsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // Rcpp_wgtsum
 double Rcpp_wgtsum(NumericVector x, NumericVector wgts);
-RcppExport SEXP _hatstats_Rcpp_wgtsum(SEXP xSEXP, SEXP wgtsSEXP) {
+RcppExport SEXP _surveysummarize_Rcpp_wgtsum(SEXP xSEXP, SEXP wgtsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -31,7 +31,7 @@ END_RCPP
 }
 // Rcpp_wgtmed
 double Rcpp_wgtmed(NumericVector x, NumericVector wgts);
-RcppExport SEXP _hatstats_Rcpp_wgtmed(SEXP xSEXP, SEXP wgtsSEXP) {
+RcppExport SEXP _surveysummarize_Rcpp_wgtmed(SEXP xSEXP, SEXP wgtsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -43,13 +43,13 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_hatstats_Rcpp_wgtavg", (DL_FUNC) &_hatstats_Rcpp_wgtavg, 2},
-    {"_hatstats_Rcpp_wgtsum", (DL_FUNC) &_hatstats_Rcpp_wgtsum, 2},
-    {"_hatstats_Rcpp_wgtmed", (DL_FUNC) &_hatstats_Rcpp_wgtmed, 2},
+    {"_surveysummarize_Rcpp_wgtavg", (DL_FUNC) &_surveysummarize_Rcpp_wgtavg, 2},
+    {"_surveysummarize_Rcpp_wgtsum", (DL_FUNC) &_surveysummarize_Rcpp_wgtsum, 2},
+    {"_surveysummarize_Rcpp_wgtmed", (DL_FUNC) &_surveysummarize_Rcpp_wgtmed, 2},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_hatstats(DllInfo *dll) {
+RcppExport void R_init_surveysummarize(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

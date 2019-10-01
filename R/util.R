@@ -1,7 +1,7 @@
 #' @importFrom magrittr %>%
 #' @export %>%
 #' @importFrom Rcpp evalCpp
-#' @useDynLib hatstats
+#' @useDynLib surveysummarize
 #===================================================================================================#
 
 #' @export

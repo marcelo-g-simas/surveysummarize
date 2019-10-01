@@ -2,14 +2,14 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 Rcpp_wgtavg <- function(x, wgts) {
-    .Call('_hatstats_Rcpp_wgtavg', PACKAGE = 'hatstats', x, wgts)
+    .Call('_surveysummarize_Rcpp_wgtavg', PACKAGE = 'surveysummarize', x, wgts)
 }
 
 Rcpp_wgtsum <- function(x, wgts) {
-    .Call('_hatstats_Rcpp_wgtsum', PACKAGE = 'hatstats', x, wgts)
+    .Call('_surveysummarize_Rcpp_wgtsum', PACKAGE = 'surveysummarize', x, wgts)
 }
 
 Rcpp_wgtmed <- function(x, wgts) {
-    .Call('_hatstats_Rcpp_wgtmed', PACKAGE = 'hatstats', x, wgts)
+    .Call('_surveysummarize_Rcpp_wgtmed', PACKAGE = 'surveysummarize', x, wgts)
 }
 

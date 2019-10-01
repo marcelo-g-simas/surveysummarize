@@ -1,5 +1,5 @@
-Package: hatstats
-Title: HTS Analytics Toolkit - Statistics
+Package: surveysummarize
+Title: Survey Summarize
 Version: 0.0.0.9000
 Authors@R: c(
     person("Alex", "Cates", email = "AlexanderCates@westat.com",role = c("aut", "cre")),
@@ -12,7 +12,11 @@ License: GPL-3
 Imports:
     Rcpp (>= 0.11.0),
     data.table,
-    magrittr
+    magrittr,
+    logging,
+    yaml,
+    R6
 LinkingTo: Rcpp
 LazyData: true
 RoxygenNote: 6.1.1
+Encoding: UTF-8

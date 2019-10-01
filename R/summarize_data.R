@@ -1,12 +1,12 @@
-#' Summarize NHTS Data
+#' Summarize HTS Data
 #'
-#' Create weighted aggregate tables using NHTS data.
+#' Create weighted aggregate tables using HTS data.
 #'
-#' @param data Object returned by \link[summarizeNHTS]{read_data}.
+#' @param data Object returned by \link[surveysummarize]{read_data}.
 #' @param agg Aggregate function label. Either "household_count", "person_count", "trip_count",
 #' "sum", "avg", "median", "household_trip_rate", or "person_trip_rate". See \emph{Aggregates} section
 #' @param agg_var Character string specifying a numeric variable over which to aggregate.
-#' Only relavent when agg is "avg" or "sum"
+#' Only relavent when agg is "sum", "avg", or "median"
 #' @param by Character vector of one or more variable names to group by. See \emph{Analysis Groups} section.
 #' @param subset Character string containing a pre-aggregation subset condition using \link[data.table]{data.table} syntax.
 #' See \emph{Filter} section.
@@ -18,10 +18,10 @@
 #'
 #' \itemize{
 #'   \item \code{by} variables. For each \code{by} variable, a column of the same name is created.
-#'   They will appear in the order they are listed as \link[base]{factors} ordered by their codebook values.
-#'   \item \strong{W} - Weighted statistic.
-#'   \item \strong{E} - Standard error of the weighted statistic.
-#'   \item \strong{S} - Surveyed/sampled statistic.
+#'   They will appear in the order they are listed as \link[base]{factor}s ordered by their codebook values.
+#'   \item \strong{Estimate} - Weighted statistic.
+#'   \item \strong{SE} - Standard error of the weighted statistic.
+#'   \item \strong{Survey} - Surveyed/sampled statistic.
 #'   \item \strong{N} - Number of observations/sample size.
 #' }
 #'
@@ -82,22 +82,25 @@
 #' You will frequently need to include quotes in your string. You can tackle this a few different ways.
 #' The following examples would all evaluate the same way:
 #'   \itemize{
-#'     \item \code{"HHSTATE %in% c('GA','FL')"}
-#'     \item \code{'HHSTATE %in% c("GA","FL")'}
-#'     \item \code{"HHSTATE %in% c(\"GA\",\"FL\")"}
+#'     \item \code{"HHSTATE \%in\% c('GA','FL')"}
+#'     \item \code{'HHSTATE \%in\% c("GA","FL")'}
+#'     \item \code{"HHSTATE \%in\% c(\"GA\",\"FL\")"}
 #'   }
 #' }
 #'
 #' @examples
 #' \donttest{
-#' # Read 2009 NHTS data with specified csv path:
-#' nhts_data <- read_data('2009', csv_path = 'C:/NHTS')
+#' # Read the data
+#' hts_data <- read_data(
+#'   study = 'nirpc_2018',
+#'   project_path = 'C:/2018 NIRPC Household Travel Survey'
+#' )
 #'
 #' summarize_data(
-#'   data = nhts_data,           # Using the nhts_data object,
-#'   agg = 'person_trip_rate',   # calculate the person trip rate
-#'   by = 'WORKER',              # by worker status
-#'   subset = 'CENSUS_R == "01"' # for households in the NE Census region
+#'   data = hts_data,             # Using the hts_data object,
+#'   agg = 'person_trip_rate',    # calculate the person trip rate
+#'   by = 'sex',                  # by gender
+#'   subset = 'emply_ask == "1"'  # for workers
 #' )
 #' }
 #'
@@ -106,8 +109,24 @@
 summarize_data <- function(data, agg, agg_var = NULL, by = NULL, subset = NULL,
                            prop = FALSE, prop_by = NULL, exclude_missing = FALSE, use_labels = TRUE) {
 
+  loginfo(paste('Summary Call:', format(match.call())))
+
   if (!'HTS.data' %in% class(data)) {
+    logerror('data is not an "HTS.data" object (returned by the read_data function).')
     stop('data is not an "HTS.data" object (returned by the read_data function).')
+  }
+
+  if (!is.null(by) & !is.character(by)) {
+    logerror('The by parameter must be a character string or vector.')
+    stop('The by parameter must be a character string or vector.')
+  }
+
+  valid_agg_labels <- c('household_count','vehicle_count','person_count','trip_count',
+                        'avg','median','sum','person_trip_rate','household_trip_rate')
+
+  if (!agg %in% valid_agg_labels) {
+    logerror(paste(agg, 'is an invalid agg parameter.'))
+    stop('agg', ' is an invalid agg parameter. Please use one of the following:\n', paste(valid_agg_labels, collapse = ', '))
   }
 
   # Get variables used in the subset condition
@@ -189,29 +208,34 @@ summarize_data <- function(data, agg, agg_var = NULL, by = NULL, subset = NULL,
 
 
   # Warn if prop = T with non-count aggregates
-  if (prop == T & !agg %in% c('household_count','vehicle_count','person_count','trip_count')) {
+  if (prop == T & !agg %in% valid_agg_labels[grepl('_count$', valid_agg_labels)]) {
+    logwarn('Can only calculate proportions for count aggregates. Ignoring parameter "prop = TRUE".')
     warning('Can only calculate proportions for count aggregates. Ignoring parameter "prop = TRUE".')
   }
 
+  # Set Table Attributes
+  setattr(tbl, 'by', by)
+  setattr(tbl, 'error', 'Standard Error')
+  setattr(tbl, 'prop', prop)
+
   if (use_labels == TRUE) {
 
+    loginfo('Using variable and value labels.')
     add_lables(tbl, data$documentation$values)
     agg_var_label <- data$documentation$variables[NAME %in% agg_var, LABEL]
     setattr(tbl, 'by_label', sapply(by, function(x) data$documentation$variables[NAME == x, LABEL], simplify = F))
 
   } else {
 
+    logwarn('Not using variable and value labels.')
     tbl[, (by) := lapply(.SD, factor), .SDcols = by]
     agg_var_label <- agg_var
     setattr(tbl, 'by_label', sapply(by, function(x) x, simplify = F))
 
   }
 
-  # Set Table Attributes
+  # Set More Table Attributes
   setattr(tbl, 'agg_var', agg_var_label)
-  setattr(tbl, 'by', by)
-  setattr(tbl, 'error', 'Standard Error')
-  setattr(tbl, 'prop', prop)
   setattr(tbl, 'agg_label', switch(agg,
     household_count = 'Household Frequency',
     vehicle_count = 'Vehicle Count',
@@ -253,6 +277,8 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
   # Different handling for unweighted and weighted datasets
   if (is.null(final) || is.null(replicates)) {
 
+    loginfo('Calculating unweighted count...')
+
     # Aggregates
     out <- data[, list(W = NA, S = .N, N = .N), keyby = mget2(by)]
 
@@ -267,6 +293,8 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
 
   } else {
 
+    loginfo('Calculating weighted/unweighted count...')
+
     # Aggregates
     out <- data[, {
       #==========================================#
@@ -279,12 +307,16 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
 
     # Calculate proportions
     if (prop == TRUE) {
+
+      loginfo('Converting counts to proportions...')
+
       out[, W := prop.table(W), by = prop_by]
       out[, S := as.double(S)]
       out[, S := prop.table(S), by = prop_by]
       out[, (replicates) := lapply(.SD, prop.table), by = prop_by, .SDcols = replicates]
     }
 
+    loginfo('Calculating standard error from replicate weights...')
     # Calculate standard error using replicates
     out[, E := jk_se(W, .SD), .SD = replicates]
     out[, (replicates) := NULL]
@@ -306,6 +338,8 @@ num_agg <- function(data, by, agg_var, fun, wfun) {
 
   if (is.null(final) || is.null(replicates)) {
 
+    loginfo('Calculating unweighted numeric aggregate...')
+
     data[eval(parse(text = gt0)), {
       #=========================================================#
       x = as.numeric(get(agg_var))  # Convert agg_var to numeric
@@ -316,6 +350,8 @@ num_agg <- function(data, by, agg_var, fun, wfun) {
     } , keyby = mget2(by)]
 
   } else {
+
+    loginfo('Calculating weighted/unweighted numeric aggregate and standard error...')
 
     data[eval(parse(text = gt0)), {
       #=========================================================#
@@ -351,6 +387,8 @@ rate <- function(numerator, denominator, by) {
 
   if (is.null(final_numerator) | is.null(replicates_numerator) | is.null(final_denominator) | is.null(replicates_denominator)) {
 
+    loginfo('Calculating unweighted rate aggregate...')
+
     # NUMERATOR
     numerator_agg <- numerator[, list(W = NA, S = .N, N = .N, R = NA), keyby = mget2(by)]
     # DENOMINATOR
@@ -372,6 +410,8 @@ rate <- function(numerator, denominator, by) {
     trip_rate_table[, E := NA]
 
   } else {
+
+    loginfo('Calculating weighted/unweighted rate aggregate...')
 
     # NUMERATOR
     numerator_agg <- numerator[, {
@@ -402,6 +442,8 @@ rate <- function(numerator, denominator, by) {
       trip_rate_table <- cbind(numerator_agg[, .SD, .SDcols = c(key(numerator_agg), 'N')], trip_rate)
       replicate_cols <- grep('^W[0-9]+$', names(trip_rate_table))
     }
+
+    loginfo('Calculating standard error from replicate weights...')
 
     # Calculate standard error and remove unnecessary columns
     trip_rate_table[, E := jk_se(W, .SD), .SDcols = replicate_cols]
