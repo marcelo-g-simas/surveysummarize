@@ -84,7 +84,7 @@ read_data <- function(study, project_path) {
   }
 
   # minimal derived variable support requires this chunk and derived_variables.R
-  derived_variable_config <- normalizePath(config$metadata$derived_variables$csv, mustWork = FALSE)
+  derived_variable_config <- normalizePath(file.path(project_path, config$metadata$derived_variables$csv), mustWork = FALSE)
   if (length(derived_variable_config) > 0 && file.exists(derived_variable_config)) {
     derived_variables(hts_obj, derived_variable_config)
   }
