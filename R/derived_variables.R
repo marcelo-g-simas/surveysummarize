@@ -110,6 +110,7 @@ add_config_codebook <- function(tbl, data) {
   # new label for the codebook
   new_codebook_values <- data.table(
     NAME = DERIVED_NAME,
+	TABLE = DERIVED_TABLE,
     VALUE = as.character(tbl$VALUE),
     LABEL = tbl$LABEL
   )

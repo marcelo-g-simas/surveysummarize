@@ -82,6 +82,25 @@ read_data <- function(study, project_path) {
     logerror(paste('Cannot find specified project path:', project_path))
     stop('Cannot find specified project path:\n', project_path)
   }
+  
+  # this should happen in a more YAML configured manner, but for now, it just needs to happen before derived variables are read in
+	hts_obj$documentation$variables <- unique(rbind(hts_obj$documentation$variables,
+		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
+		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
+		hts_obj$documentation$variables[NAME == 'actdur' & TABLE == 'place', list(NAME = 'actdur_origin', TABLE, TYPE, LABEL)],
+		data.table(NAME = 'starttime', TABLE = 'place', TYPE = 'numeric', LABEL = 'Start time (ISO 8601 Date and Time)')
+	))
+
+	hts_obj$documentation$values <- unique(rbind(hts_obj$documentation$values,
+	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, VALUE, LABEL)],
+	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, VALUE, LABEL)]
+	))
+
+	hts_obj$documentation$variables[TABLE == 'place', TABLE := 'trip']
+	hts_obj$documentation$values[TABLE == 'place', TABLE := 'trip']
+
+	hts_obj$documentation$variables <- hts_obj$documentation$variables[TABLE %in% c('household','person','trip','trip','tour')]
+	hts_obj$documentation$values <- hts_obj$documentation$values[TABLE %in% c('household','person','trip','trip','tour')]
 
   # minimal derived variable support requires this chunk and derived_variables.R
   derived_variable_config <- normalizePath(file.path(project_path, config$metadata$derived_variables$csv), mustWork = FALSE)
@@ -345,7 +364,7 @@ HTS.data <- R6Class("HTS.data",
       setDT(place, key = self$config$levels$place$id)
 
       # Copy over variables from place 1
-      variables <- c('tpurp','tpurp2','deptime','locno')
+      variables <- c('tpurp','deptime','locno')
       for (var in variables) {
         place[, (paste(var, 'origin', sep = '_')) := shift(get(var)), by = eval(self$config$levels$person$id)]
       }
