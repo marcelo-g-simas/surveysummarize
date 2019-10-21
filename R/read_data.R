@@ -390,7 +390,7 @@ HTS.data <- R6Class("HTS.data",
     append_location_data = function() {
 
       # Location variables to append
-      loc_cols <- c('longitude','latitude','city','state','zip','state_fips','county_fips')
+      loc_cols <- c('longitude','latitude','city','state','zip','state_fips','county_fips','loctype')
 
       # Household
       household_location <- self$data$location[loctype == 1, .SD, .SDcols = c(self$config$levels$household$id, loc_cols)]
