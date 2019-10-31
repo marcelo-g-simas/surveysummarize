@@ -322,6 +322,16 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
     out[, (replicates) := NULL]
 
   }
+	
+	# if variable is entirely numeric (naturally or coded), order it numerically
+	for(i in by) {
+		if(any(grepl("[A-z]", out[, mget(i)][[1]]))) {
+		} else {
+			setDF(out)
+			out[, i] <- as.numeric(out[, i])
+			setDT(out)
+		}
+	}
 
   return(out[, list(W, E, S, N), keyby = mget2(by)])
 
