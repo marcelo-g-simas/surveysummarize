@@ -15,7 +15,7 @@ Imports:
     magrittr,
     logging,
     yaml,
-    R6
+    R6,
     surveyvisualize
 Remotes: github::Westat-Transportation/surveyvisualize
 LinkingTo: Rcpp
