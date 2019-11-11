@@ -1,0 +1,20 @@
+NAME,TABLE,TYPE,DOMAIN,VALUE,LABEL
+hhworker_agg,household,character,"data$data$person[, list(workers = sum(as.numeric(jobs) > 0)), keyby = list(sampno)][workers == 0]",0,0
+hhworker_agg,household,character,"data$data$person[, list(workers = sum(as.numeric(jobs) > 0)), keyby = list(sampno)][workers == 1]",1,1
+hhworker_agg,household,character,"data$data$person[, list(workers = sum(as.numeric(jobs) > 0)), keyby = list(sampno)][workers == 2]",2,2
+hhworker_agg,household,character,"data$data$person[, list(workers = sum(as.numeric(jobs) > 0)), keyby = list(sampno)][workers >= 3]",3,3+
+hhsize_agg,household,character,as.numeric(hhsize) == 1,1,1
+hhsize_agg,household,character,as.numeric(hhsize) == 2,2,2
+hhsize_agg,household,character,as.numeric(hhsize) == 3,3,3
+hhsize_agg,household,character,as.numeric(hhsize) >= 4,4,4+
+hhveh_agg,household,character,as.numeric(hhveh) == 0,0,0
+hhveh_agg,household,character,as.numeric(hhveh) == 1,1,1
+hhveh_agg,household,character,as.numeric(hhveh) == 2,2,2
+hhveh_agg,household,character,as.numeric(hhveh) >= 3,3,3+
+age_binned,person,character,as.numeric(age) %in% 0:19,1,<20
+age_binned,person,character,as.numeric(age) %in% 20:24,2,20 - 24
+age_binned,person,character,as.numeric(age) %in% 25:54,3,25 - 54
+age_binned,person,character,as.numeric(age) %in% 55:59,4,55 - 59
+age_binned,person,character,as.numeric(age) %in% 60:64,5,60 - 64
+age_binned,person,character,as.numeric(age) %in% 65:max(as.numeric(age)),6,65+
+age_binned,person,character,as.numeric(age) < 0,7,Don't Know/Refused
