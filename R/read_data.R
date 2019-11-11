@@ -82,7 +82,7 @@ read_data <- function(study, project_path) {
     logerror(paste('Cannot find specified project path:', project_path))
     stop('Cannot find specified project path:\n', project_path)
   }
-  
+
   # this should happen in a more YAML configured manner, but for now, it just needs to happen before derived variables are read in
 	hts_obj$documentation$variables <- unique(rbind(hts_obj$documentation$variables,
 		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
@@ -390,7 +390,7 @@ HTS.data <- R6Class("HTS.data",
     append_location_data = function() {
 
       # Location variables to append
-      loc_cols <- c('longitude','latitude','city','state','zip','state_fips','county_fips','loctype')
+      loc_cols <- setdiff(names(self$data$location), c('sampno','perno','locno'))
 
       # Household
       household_location <- self$data$location[loctype == 1, .SD, .SDcols = c(self$config$levels$household$id, loc_cols)]
