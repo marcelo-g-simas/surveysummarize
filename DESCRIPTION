@@ -15,7 +15,9 @@ Imports:
     magrittr,
     logging,
     yaml,
-    R6
+    R6,
+    surveyvisualize
+Remotes: github::Westat-Transportation/surveyvisualize
 LinkingTo: Rcpp
 LazyData: true
 RoxygenNote: 6.1.1
