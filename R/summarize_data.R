@@ -322,7 +322,7 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
     out[, (replicates) := NULL]
 
   }
-	
+
 	# if variable is entirely numeric (naturally or coded), order it numerically
 	for(i in by) {
 		if(any(grepl("[A-z]", out[, mget(i)][[1]]))) {
@@ -477,6 +477,6 @@ jk_se <- function(final_weights, replicate_weights, coefficient = getOption('HTS
     ncol = length(replicate_weights)
   )
   dif <- sweep(replicate_weights, 1, final_weights) ** 2
-  E <- apply(dif, 1, function(x) sqrt(coefficient * sum(x)))
+  E <- apply(dif, 1, function(x) sqrt(coefficient * sum(x, na.rm = T)))
   return(E)
 }
