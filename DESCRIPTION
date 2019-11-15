@@ -1,6 +1,6 @@
 Package: surveysummarize
 Title: Survey Summarize
-Version: 0.0.0.9000
+Version: 0.0.1.0
 Authors@R: c(
     person("Alex", "Cates", email = "AlexanderCates@westat.com",role = c("aut", "cre")),
     person("Anthony", "Fucci", email = "AnthonyFucci@westat.com",role = c("aut")),

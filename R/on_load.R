@@ -23,7 +23,18 @@
 
 }
 
+.onAttach <- function(libname, pkgname) {
 
+	# put surveyvisualize functions in namespace on load while avoiding showing a mess of messages (from surveyvisualize's dependency on ggplot2)
+	# this also allows us to avoid using Depends: in DESCRIPTION file while still loading surveyvisualize during library(surveysummarize) and installing it when this package is installed with devtools::install_*
+	invisible(suppressWarnings(suppressPackageStartupMessages((library(surveyvisualize, quietly=T)))))
 
+  if(interactive()) {
+  	packageStartupMessage("_____________________________________________________________________")
+    packageStartupMessage("surveysummarize ") # , paste0(packageVersion("surveysummarize"))
+    packageStartupMessage("Developed by Westat: https://www.westat.com")
+    packageStartupMessage("=====================================================================")
+    packageStartupMessage("GitHub page: https://github.com/Westat-Transportation/surveysummarize")
+  }
 
-
+}
