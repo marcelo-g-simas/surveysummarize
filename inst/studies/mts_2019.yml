@@ -1,0 +1,65 @@
+#========================================================================================================#
+# THIS IS A STUDY CONFIGURATION TEMPLATE:
+# - The name of the study configuration file (sans extension) will be the study name.
+#   Example: If file is named 'hts_2019.yaml', then you will specify study = 'hts_2019' in read_data.
+# - All file paths are relative to the project directory specified in read_data.
+# - It is important to use the file.path(...) to make sure the constructed paths are platform-independent.
+# - Use !expr to evaluate an expression using R code.
+# - A trip table will be generated from the specified place table upon calling read_data.
+# - Metadata values are optional.
+#========================================================================================================#
+levels:
+  household:
+    id: 'sampno' # Household ID variable name
+    data:
+      csv: !expr file.path('data','household.csv') # Household data csv
+    weights:
+      csv: !expr file.path('data','household_weights.csv') # Household weights csv
+      final: 'wthhfin' # Final household weight variable name
+      replicates: !expr paste0('wthhfin', 1:80) # Repiclate household weight variable names
+#========================================================================================================#
+  person:
+    id:
+      - 'sampno' # Household ID variable name
+      - 'perno' # Person ID variable name
+    data:
+      csv: !expr file.path('data','person.csv') # Person data csv
+    weights:
+      csv: !expr file.path('data','person_weights.csv') # Person weights csv
+      final: 'wtperfin' # Final person weight variable name
+      replicates: !expr paste0('wtperfin', 1:80) # Repiclate person weight variable names
+#========================================================================================================#
+  place:
+    id:
+      - 'sampno' # Household ID variable name
+      - 'perno' # Person ID variable name
+      - 'placeno' # Place ID variable name
+    data:
+      csv: !expr file.path('data','place.csv') # Place data csv
+#========================================================================================================#
+  vehicle:
+    id:
+      - 'sampno' # Household ID variable name
+      - 'vehno' # Vehicle ID variable name
+    data:
+      csv: !expr file.path('data','vehicle.csv') # Vehicle data csv
+#========================================================================================================#
+  location:
+    id:
+      - 'sampno' # Household ID variable name
+      - 'locno' # Location ID variable name
+    data:
+      csv: !expr file.path('data','location.csv') # Location data csv
+#========================================================================================================#
+metadata:
+  variables:
+    csv: !expr file.path('documentation','labels','variables.csv') # Variable labels csv
+  values:
+    csv: !expr file.path('documentation','labels','values.csv') # Value labels csv
+  derived_variables:
+    csv: !expr file.path('data','derived_variable_config.csv') # Derived variable configuration csv
+#========================================================================================================#
+constants:
+  jk_coeff: 1 # JackKnife coefficient for computing standard error
+  annualized_days: 261 # Number of days to use for annualized estimates
+
