@@ -77,30 +77,38 @@ read_data <- function(study, project_path) {
     # Initalize HTS data object
     hts_obj <- HTS.data$new(config, project_path)
     hts_obj$read_all()
-    hts_obj$append_location_data()
+    if(length(hts_obj$config$levels$location)>0) {
+      hts_obj$append_location_data()
+    }
   } else {
     logerror(paste('Cannot find specified project path:', project_path))
     stop('Cannot find specified project path:\n', project_path)
   }
 
-  # this should happen in a more YAML configured manner, but for now, it just needs to happen before derived variables are read in
-	hts_obj$documentation$variables <- unique(rbind(hts_obj$documentation$variables,
-		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
-		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
-		hts_obj$documentation$variables[NAME == 'actdur' & TABLE == 'place', list(NAME = 'actdur_origin', TABLE, TYPE, LABEL)],
-		data.table(NAME = 'starttime', TABLE = 'place', TYPE = 'numeric', LABEL = 'Start time (ISO 8601 Date and Time)')
-	))
+  # program assumes place table needs converting unless configuration is specified
+  hts_obj$config$levels$place$convert_place_to_trip_DECISION <- ifelse(length(hts_obj$config$levels$place$convert_place_to_trip)==0,"TRUE",hts_obj$config$levels$place$convert_place_to_trip)
 
-	hts_obj$documentation$values <- unique(rbind(hts_obj$documentation$values,
-	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, VALUE, LABEL)],
-	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, VALUE, LABEL)]
-	))
+  if(as.logical(hts_obj$config$levels$place$convert_place_to_trip_DECISION) == TRUE) {
 
-	hts_obj$documentation$variables[TABLE == 'place', TABLE := 'trip']
-	hts_obj$documentation$values[TABLE == 'place', TABLE := 'trip']
+  	hts_obj$documentation$variables <- unique(rbind(hts_obj$documentation$variables,
+  		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
+  		hts_obj$documentation$variables[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, TYPE, LABEL = paste(LABEL, 'at origin'))],
+  		hts_obj$documentation$variables[NAME == 'actdur' & TABLE == 'place', list(NAME = 'actdur_origin', TABLE, TYPE, LABEL)],
+  		data.table(NAME = 'starttime', TABLE = 'place', TYPE = 'numeric', LABEL = 'Start time (ISO 8601 Date and Time)')
+  	))
 
-	hts_obj$documentation$variables <- hts_obj$documentation$variables[TABLE %in% c('household','person','trip','trip','tour')]
-	hts_obj$documentation$values <- hts_obj$documentation$values[TABLE %in% c('household','person','trip','trip','tour')]
+  	hts_obj$documentation$values <- unique(rbind(hts_obj$documentation$values,
+  	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_origin', TABLE, VALUE, LABEL)],
+  	  hts_obj$documentation$values[NAME == 'tpurp' & TABLE == 'place', list(NAME = 'tpurp_o_origin', TABLE, VALUE, LABEL)]
+  	))
+
+  	hts_obj$documentation$variables[TABLE == 'place', TABLE := 'trip']
+  	hts_obj$documentation$values[TABLE == 'place', TABLE := 'trip']
+
+  	hts_obj$documentation$variables <- hts_obj$documentation$variables[TABLE %in% c('household','person','trip','trip','tour')]
+  	hts_obj$documentation$values <- hts_obj$documentation$values[TABLE %in% c('household','person','trip','trip','tour')]
+  }
+
 
   # minimal derived variable support requires this chunk and derived_variables.R
   derived_variable_config <- normalizePath(file.path(project_path, config$metadata$derived_variables$csv), mustWork = FALSE)
@@ -176,7 +184,19 @@ HTS.data <- R6Class("HTS.data",
     #========================================================================================================#
     read_data = function(table_level) {
       if (table_level == 'place') {
-        self$data[['trip']] <- self$place_to_trip()
+        # program assumes place table needs converting unless configuration is specified
+        convert_place_to_trip_DECISION <- ifelse(length(self$config$levels$place$convert_place_to_trip)==0,"TRUE",self$config$levels$place$convert_place_to_trip)
+        if(as.logical(convert_place_to_trip_DECISION) == TRUE) {
+          self$data[['trip']] <- self$place_to_trip()
+        } else {
+          level_config <- self$config$levels[[table_level]]
+          input_csv <- normalizePath(file.path(self$project_path, level_config$data$csv))
+          self$data[['trip']] <- fread(
+            input = input_csv,
+            key = level_config$id,
+            colClasses = 'character'
+          )
+        }
       } else {
         level_config <- self$config$levels[[table_level]]
         input_csv <- normalizePath(file.path(self$project_path, level_config$data$csv))
