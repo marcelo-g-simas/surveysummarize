@@ -33,7 +33,7 @@ levels:
     id:
       - 'household_id' # Household ID variable name
       - 'person_id' # Person ID variable name
-      - 'trip_id' # Place ID variable name
+      - 'tripid' # Place ID variable name
     data:
       csv: !expr file.path('data','trip.csv') # Place data csv
     convert_place_to_trip: FALSE # set to FALSE if you already have a literal trip table (origin->destination per record). program assumes TRUE, that you are using literal place file
@@ -41,7 +41,7 @@ levels:
   vehicle:
     id:
       - 'household_id' # Household ID variable name
-      - 'vehicle_id' # Vehicle ID variable name
+      - 'vehid' # Vehicle ID variable name
     data:
       csv: !expr file.path('data','vehicle.csv') # Vehicle data csv
 #========================================================================================================#
