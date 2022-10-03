@@ -132,7 +132,7 @@ summarize_data <- function(data, agg, agg_var = NULL, by = NULL, subset = NULL,
   # Get variables used in the subset condition
   subset_vars <- data$extract_subset_variables(subset)
   if (exclude_missing == T) {
-    subset <- exclude_missing_values(subset, by)
+    subset <- exclude_missing_values(subset, by, data$config$constants$missing_values)
   }
 
   # List all variables that will need to be accessed (excluding IDs/weights)

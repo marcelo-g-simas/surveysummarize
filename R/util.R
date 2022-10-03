@@ -21,8 +21,12 @@ mget2 <- function(x, envir = sys.frame(sys.parent(1)), warn = T) {
 }
 
 #' @export
-exclude_missing_values <- function(subset, variables) {
-  exclude_missing <- sprintf("(!%s %%in%% c('-9','-88','-8','-7','-77','-1'))", variables)
+exclude_missing_values <- function(subset, variables, missing_values) {
+  if(!is.null(missing_values) && length(missing_values) >= 1) {
+    exclude_missing <- sprintf(paste0("(!%s %%in%% c('", paste(missing_values, collapse = "','"), "'))"), variables)
+  } else {
+    exclude_missing <- sprintf("(!%s %%in%% c('-9','-88','-8','-7','-77','-1'))", variables)
+  }
   exclude_missing <- paste0(exclude_missing, collapse = ' & ')
   if (exclude_missing == '') exclude_missing <- subset
   return(exclude_missing)
