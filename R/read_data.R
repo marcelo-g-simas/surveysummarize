@@ -105,8 +105,8 @@ read_data <- function(study, project_path) {
   	hts_obj$documentation$variables[TABLE == 'place', TABLE := 'trip']
   	hts_obj$documentation$values[TABLE == 'place', TABLE := 'trip']
 
-  	hts_obj$documentation$variables <- hts_obj$documentation$variables[TABLE %in% c('household','person','trip','trip','tour')]
-  	hts_obj$documentation$values <- hts_obj$documentation$values[TABLE %in% c('household','person','trip','trip','tour')]
+  	hts_obj$documentation$variables <- hts_obj$documentation$variables[TABLE %in% c('household','person','vehicle','trip','tour')]
+  	hts_obj$documentation$values <- hts_obj$documentation$values[TABLE %in% c('household','person','vehicle','trip','tour')]
   }
 
 
