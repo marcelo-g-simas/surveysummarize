@@ -325,7 +325,7 @@ count <- function(data, by, prop = FALSE, prop_by = NULL) {
 
 	# if variable is entirely numeric (naturally or coded), order it numerically
 	for(i in by) {
-		if(any(grepl("[A-z]", out[, mget(i)][[1]]))) {
+		if(any(grepl("[A-z&,;.!?\\/-]", out[, mget(i)][[1]]))) {
 		} else {
 			setDF(out)
 			out[, i] <- as.numeric(out[, i])
