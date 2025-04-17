@@ -61,5 +61,5 @@ metadata:
 #========================================================================================================#
 constants:
   jk_coeff: 1 # JackKnife coefficient for computing standard error
-  annualized_days: 261 # Number of days to use for annualized estimates
+  annualized_days: 156 # Number of days to use for annualized estimates
 
